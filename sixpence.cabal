@@ -1,0 +1,35 @@
+name:                sixpence
+version:             0.0.1
+synopsis:            MPD client in browser, built with reactive-banana and threepenny
+homepage:            https://github.com/rnons/sixpence
+license:             PublicDomain
+license-file:        LICENSE
+author:              rnons
+maintainer:          remotenonsens@gmail.com
+category:            Sound
+build-type:          Simple
+cabal-version:       >=1.8
+tested-with:         GHC == 7.6.3
+
+source-repository   head
+  type:             git
+  location:         git://github.com/rnons/sixpence.git
+
+executable sixpence
+  main-is:              main.hs
+  ghc-options:          -Wall
+  build-depends:        base >= 4 && <5, 
+                        aeson >= 0.6, 
+                        attoparsec-conduit >= 1.0, 
+                        bytestring >= 0.9, 
+                        conduit >= 1.0, 
+                        containers >= 0.5,
+                        html-conduit >= 1.1, 
+                        http-conduit >= 1.9, 
+                        libmpd >= 0.8, 
+                        reactive-banana >= 0.7,
+                        reactive-banana-threepenny >= 0.7,
+                        text >= 0.11, 
+                        threepenny-gui >= 0.2,
+                        utf8-string >= 0.3, 
+                        xml-conduit >= 1.1
