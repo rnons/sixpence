@@ -13,6 +13,8 @@ import qualified Network.MPD as MPD
 import Reactive.Banana
 import Reactive.Banana.Threepenny
 
+import Sixpence.Lyric
+
 main :: IO ()
 main =
     startGUI Config
@@ -25,22 +27,27 @@ setup :: Window -> IO ()
 setup w = do
     return w # set title "A barebone MPD client"
 
-    elePause <- UI.button
-    eleNext <- UI.button # set UI.text "Next"
-    eleInfo <- UI.span
-    elePlaying <- UI.span
+    btPause     <- UI.button
+    btNext      <- UI.button # set UI.text "Next"
+    btLyric     <- UI.button # set UI.text "Fetch Lyric"
+    eleInfo     <- UI.span
+    elePlaying  <- UI.span
+    eleShowLrc  <- UI.div
     element eleInfo # set text "Current Song: "
     
     getBody w #+
         [ row [ element eleInfo, element elePlaying ]
-        , row [ element elePause, element eleNext]
+        , row [ element btPause, element btNext, element btLyric ]
+        --, row [ element btPause, element btNext ]
+        , row [ element eleShowLrc ]
         ]
     (mpdHandler, mpdSink) <- newAddHandler
     let 
         networkDescription :: forall t. Frameworks t => Moment t ()
         networkDescription = do
-            ePause <- event UI.click elePause
-            eNext  <- event UI.click eleNext
+            ePause <- event UI.click btPause
+            eNext  <- event UI.click btNext
+            eLyric <- event UI.click btLyric
             bMpd <- fromChanges ("", "") mpdHandler
 
             let 
@@ -50,16 +57,25 @@ setup w = do
                     if fmap stState st == Right Playing
                         then do
                             liftIO $ withMPD $ MPD.pause True 
-                            void $ liftIO $ element elePause # set text "Play"
+                            void $ liftIO $ element btPause # set text "Play"
                         else do
                             liftIO $ withMPD $ MPD.pause False 
-                            void $ liftIO $ element elePause # set text "Pause"
+                            void $ liftIO $ element btPause # set text "Pause"
+                
                 mNext :: Frameworks s => Moment s ()
                 mNext = void $ liftIO $ withMPD next
 
+                mLyric :: Frameworks s => Moment s ()
+                mLyric = liftIO $ do
+                    artist <- mpdMeta Artist
+                    title <- mpdMeta Title
+                    lyric <- wikia artist title
+                    void $ liftIO $ element eleShowLrc # set html lyric
+
             execute $ FrameworksMoment mPause <$ ePause
-            execute $ FrameworksMoment mNext <$ eNext
-            return elePause # sink text (fst <$> bMpd)
+            execute $ FrameworksMoment mNext  <$ eNext
+            execute $ FrameworksMoment mLyric <$ eLyric
+            return btPause # sink text (fst <$> bMpd)
             return elePlaying # sink text (snd <$> bMpd)
         loop = do
             st <- withMPD status
@@ -71,7 +87,7 @@ setup w = do
             loop
     network <- compile networkDescription
     actuate network
-    void $ forkIO $ loop
+    void $ forkIO loop
 
 mpdPlaying :: IO String
 mpdPlaying = do
