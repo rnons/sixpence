@@ -1,0 +1,9 @@
+tags
+dist/
+yesod-devel/
+static/tmp/
+config/client_session_key.aes
+*.swp
+*~
+*.hi
+*.o
