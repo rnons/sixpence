@@ -2,10 +2,11 @@
 
 import Codec.Binary.UTF8.String (decodeString)
 import Control.Concurrent
+import qualified Control.Exception as E
 import Control.Monad
 import qualified Data.ByteString.Char8 as C8
 import qualified Data.Map as Map
-import Data.Maybe (fromJust)
+import Data.Maybe (fromMaybe, fromJust)
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core
 import Network.MPD
@@ -78,6 +79,7 @@ setup w = do
             return btPause # sink text (fst <$> bMpd)
             return elePlaying # sink text (snd <$> bMpd)
         loop = do
+            element eleShowLrc # set html ""
             st <- withMPD status
             let state = if fmap stState st == Right Playing 
                            then "Pause" else "Play"
@@ -96,8 +98,10 @@ mpdPlaying = do
     return (artist ++ " - " ++ title)
 
 mpdMeta :: Metadata -> IO String
-mpdMeta info = do
-    song <- withMPD currentSong
-    let metaValue = liftM (Map.lookup info . sgTags . fromJust) song
-        meta = (\(Value v) -> v) $ head $ fromJust $ (\(Right v) -> v) metaValue
-    return $ decodeString $ C8.unpack meta
+mpdMeta info = E.catch
+    (do song <- withMPD currentSong
+        let metaValue = liftM (Map.lookup info . sgTags . fromJust) song
+            meta = (\(Value v) -> v) $ head $ fromJust $ (\(Right v) -> v) metaValue
+        return $ decodeString $ C8.unpack meta)
+    (\e -> do print (e :: E.SomeException)
+              return "")
